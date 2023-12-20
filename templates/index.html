@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video and Thumbnail Upload</title>
+  <style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f2f2f2;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+    }
+
+    h1 {
+        color: #333;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 300px;
+        margin: 20px;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+        margin-bottom: 10px;
+        font-weight: bold;
+        color: #555;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    button {
+        background-color: #4caf50;
+        color: #fff;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    button:hover {
+        background-color: #45a049;
+    }
+
+    #messageContainer {
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .success {
+        color: #4caf50;
+    }
+
+    .error {
+        color: #f44336;
+    }
+
+    .uploading {
+        color: #3498db;
+    }
+
+  </style>
+</head>
+  <body>
+    <h1>Image and Title Upload</h1>
+
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
+        <br>
+        <label for="video">Choose a video file:</label>
+        <input type="file" id="videoInput" name="video" accept="video/*" required>
+        <br>
+        <label for="thumbnail">Choose a thumbnail file:</label>
+        <input type="file" id="thumbnailInput" name="thumbnail" accept="image/*" required>
+        <br>
+        <progress id="uploadProgress" value="0" max="100"></progress>
+        <br>
+        <button type="button" onclick="uploadFile()">Upload</button>
+    </form>
+
+    <div id="messageContainer"></div>
+    <div id="videoList">
+        {% for filename in video_files %}
+            <video controls autoplay name="media">
+                <source src="{{ url_for('uploaded_file_upload', filename=filename) }}" type="video/mp4">
+            </video>
+        {% endfor %}
+    </div>
+
+
+    <script>
+      function uploadFile() {
+          const titleInput = document.getElementById('title');
+          const videoInput = document.getElementById('videoInput');
+          const thumbnailInput = document.getElementById('thumbnailInput');
+          const title = titleInput.value;
+          const videoFile = videoInput.files[0];
+          const thumbnailFile = thumbnailInput.files[0];
+
+          if (!title || !videoFile || !thumbnailFile) {
+              showMessage('Please enter a title and select both a video and a thumbnail file.', 'error');
+              return;
+          }
+
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('video', videoFile);
+          formData.append('thumbnail', thumbnailFile);
+
+          const progress = document.getElementById('uploadProgress');
+          const messageContainer = document.getElementById('messageContainer');
+
+          showMessage('Uploading...', 'uploading');  // Show "Uploading..." message
+
+          const xhr = new XMLHttpRequest();
+
+          xhr.open('POST', '/upload', true);
+
+          xhr.upload.onprogress = function (event) {
+              if (event.lengthComputable) {
+                  const percentComplete = (event.loaded / event.total) * 100;
+                  progress.value = percentComplete;
+              }
+          };
+
+          xhr.onload = function () {
+              if (xhr.status === 200) {
+                  showMessage(xhr.responseText, 'success');
+                  titleInput.value = '';  // Clear the title input after successful upload
+                  videoInput.value = '';  // Clear the video input after successful upload
+                  thumbnailInput.value = '';  // Clear the thumbnail input after successful upload
+                  progress.value = 0;  // Reset progress bar
+              } else {
+                  showMessage('An error occurred during the file upload.', 'error');
+              }
+          };
+
+          xhr.send(formData);
+      }
+
+      function showMessage(message, messageType) {
+          const messageContainer = document.getElementById('messageContainer');
+          messageContainer.innerHTML = `<p class="${messageType}">${message}</p>`;
+      }
+    </script>
+  </body>
+  </html>
